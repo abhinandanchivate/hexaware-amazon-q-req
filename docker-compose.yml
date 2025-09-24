@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: fhir_portal
+      MYSQL_USER: fhir_user
+      MYSQL_PASSWORD: fhir_password
+      MYSQL_ROOT_PASSWORD: root_password
+    command: ["--default-authentication-plugin=mysql_native_password", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    working_dir: /app
+    volumes:
+      - ./fhir_portal:/app
+    environment:
+      MYSQL_DATABASE: fhir_portal
+      MYSQL_USER: fhir_user
+      MYSQL_PASSWORD: fhir_password
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+volumes:
+  mysql-data:
