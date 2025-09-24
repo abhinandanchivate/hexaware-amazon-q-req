@@ -32,20 +32,28 @@ TEMPLATES = []
 WSGI_APPLICATION = 'fhir_portal.wsgi.application'
 ASGI_APPLICATION = 'fhir_portal.asgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('MYSQL_DATABASE', 'fhir_portal'),
-        'USER': os.environ.get('MYSQL_USER', 'fhir_user'),
-        'PASSWORD': os.environ.get('MYSQL_PASSWORD', 'fhir_password'),
-        'HOST': os.environ.get('MYSQL_HOST', '127.0.0.1'),
-        'PORT': os.environ.get('MYSQL_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+if os.environ.get('USE_SQLITE_FOR_TESTS'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('MYSQL_DATABASE', 'fhir_portal'),
+            'USER': os.environ.get('MYSQL_USER', 'fhir_user'),
+            'PASSWORD': os.environ.get('MYSQL_PASSWORD', 'fhir_password'),
+            'HOST': os.environ.get('MYSQL_HOST', '127.0.0.1'),
+            'PORT': os.environ.get('MYSQL_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
