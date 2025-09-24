@@ -2,94 +2,116 @@ from django.urls import path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from ..sample_utils import deep_merge, ensure_list, generate_identifier, isoformat_now
 
-PATIENT_SAMPLE = {
-    'resourceType': 'Patient',
-    'id': 'patient-uuid-123',
-    'meta': {
-        'versionId': '1',
-        'lastUpdated': '2023-09-01T12:30:45Z',
-    },
-    'identifier': [
-        {
-            'use': 'usual',
-            'type': {
-                'coding': [
-                    {
-                        'system': 'http://terminology.hl7.org/CodeSystem/v2-0203',
-                        'code': 'MR',
-                    }
-                ]
-            },
-            'value': 'MRN12345',
-        }
-    ],
-    'name': [
-        {
-            'use': 'official',
-            'family': 'Doe',
-            'given': ['John', 'Michael'],
-        }
-    ],
-    'gender': 'male',
-    'birthDate': '1980-01-15',
-}
+
+def _patient_template(payload: dict | None = None) -> dict:
+    payload = payload or {}
+    identifiers = ensure_list(
+        payload.get('identifier'),
+        [
+            {
+                'use': 'usual',
+                'type': {
+                    'coding': [
+                        {
+                            'system': 'http://terminology.hl7.org/CodeSystem/v2-0203',
+                            'code': 'MR',
+                        }
+                    ]
+                },
+                'value': 'MRN-SAMPLE',
+            }
+        ],
+    )
+    names = ensure_list(
+        payload.get('name'),
+        [
+            {
+                'use': 'official',
+                'family': 'Sample',
+                'given': ['Patient'],
+            }
+        ],
+    )
+    return {
+        'resourceType': 'Patient',
+        'id': generate_identifier('patient', override=payload.get('id')),
+        'meta': {
+            'versionId': payload.get('meta', {}).get('versionId', '1'),
+            'lastUpdated': isoformat_now(),
+        },
+        'identifier': identifiers,
+        'name': names,
+        'gender': payload.get('gender', 'unknown'),
+        'birthDate': payload.get('birthDate', '1970-01-01'),
+    }
 
 
 @api_view(['POST'])
 def register(request):
-    return Response(PATIENT_SAMPLE)
+    payload = request.data if isinstance(request.data, dict) else {}
+    return Response(deep_merge(_patient_template(payload), payload))
 
 
 @api_view(['PUT'])
 def update(request, patient_id: str):
-    updated = PATIENT_SAMPLE.copy()
-    updated['id'] = patient_id
-    updated['meta'] = {
-        'versionId': '2',
-        'lastUpdated': '2023-09-02T10:15:00Z',
-    }
-    return Response(updated)
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = _patient_template({**payload, 'id': patient_id})
+    template['meta']['versionId'] = payload.get('meta', {}).get('versionId', '2')
+    return Response(deep_merge(template, payload))
 
 
 @api_view(['GET'])
 def search(request):
-    return Response({
+    name_query = request.query_params.getlist('name')
+    if name_query:
+        names = [{'text': value} for value in name_query]
+    else:
+        names = [{'family': 'Sample', 'given': ['Patient']}]
+    entries = [
+        {
+            'resource': {
+                'resourceType': 'Patient',
+                'id': request.query_params.get('id', generate_identifier('patient')),
+                'name': names,
+            }
+        }
+    ]
+    response = {
         'resourceType': 'Bundle',
         'type': 'searchset',
-        'total': 1,
-        'entry': [
-            {
-                'resource': {
-                    'resourceType': 'Patient',
-                    'id': 'patient-uuid-123',
-                    'name': [{'family': 'Doe', 'given': ['John']}],
-                }
-            }
-        ],
-    })
+        'total': int(request.query_params.get('total', len(entries))),
+        'entry': entries,
+    }
+    return Response(response)
 
 
 @api_view(['POST'])
 def merge(request, source_id: str, target_id: str):
-    return Response({
-        'status': 'merged',
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = {
+        'status': payload.get('status', 'merged'),
         'resultPatientId': target_id,
-        'mergedFields': ['telecom', 'address'],
-        'auditId': 'audit-uuid-456',
-    })
+        'mergedFields': payload.get('mergedFields', ['telecom', 'address']),
+        'auditId': generate_identifier('audit', override=payload.get('auditId')),
+    }
+    return Response(template)
 
 
 @api_view(['GET'])
 def export(request, patient_id: str):
-    return Response({
-        'exportId': 'export-uuid-789',
-        'status': 'completed',
-        'downloadUrl': f'/api/v1/exports/export-uuid-789/download',
+    template = {
+        'exportId': generate_identifier('export'),
+        'status': request.query_params.get('status', 'completed'),
+        'downloadUrl': request.query_params.get(
+            'downloadUrl', f'/api/v1/exports/{generate_identifier("export")}/download'
+        ),
         'format': request.query_params.get('format', 'pdf'),
-        'size': '2.4MB',
-        'expiresAt': '2023-09-08T12:30:45Z',
-    })
+        'size': request.query_params.get('size', '0MB'),
+        'expiresAt': request.query_params.get('expiresAt', isoformat_now()),
+    }
+    return Response(template)
 
 
 urlpatterns = [

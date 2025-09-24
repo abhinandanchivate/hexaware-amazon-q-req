@@ -2,49 +2,66 @@ from django.urls import path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from ..sample_utils import ensure_list, generate_identifier, isoformat_now
+
 
 @api_view(['POST'])
 def login(request):
-    return Response({
-        'accessToken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        'refreshToken': 'refresh-token-uuid',
-        'tokenType': 'Bearer',
-        'expiresIn': 3600,
+    payload = request.data if isinstance(request.data, dict) else {}
+    response = {
+        'accessToken': payload.get('accessToken', generate_identifier('access-token')),
+        'refreshToken': payload.get('refreshToken', generate_identifier('refresh-token')),
+        'tokenType': payload.get('tokenType', 'Bearer'),
+        'expiresIn': int(payload.get('expiresIn', 3600)),
         'user': {
-            'id': 'user-uuid-123',
-            'email': 'john.doe@example.com',
-            'roles': ['patient'],
-            'permissions': ['read:own_records', 'write:own_profile'],
+            'id': payload.get('user', {}).get('id', generate_identifier('user')),
+            'email': payload.get('username') or payload.get('email', 'user@example.com'),
+            'roles': ensure_list(payload.get('roles'), ['patient']),
+            'permissions': ensure_list(
+                payload.get('permissions'), ['read:own_records', 'write:own_profile']
+            ),
         },
-    })
+        'issuedAt': isoformat_now(),
+    }
+    return Response(response)
 
 
 @api_view(['POST'])
 def register(request):
-    return Response({
-        'status': 'registered',
-        'userId': 'user-uuid-123',
-        'verificationMethod': request.data.get('verificationMethod', 'email'),
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    return Response(
+        {
+            'status': payload.get('status', 'registered'),
+            'userId': generate_identifier('user', override=payload.get('userId')),
+            'verificationMethod': payload.get('verificationMethod', 'email'),
+        }
+    )
 
 
 @api_view(['POST'])
 def password_reset(request):
-    return Response({
-        'status': 'sent',
-        'message': 'Password reset instructions sent to email',
-        'resetTokenId': 'reset-uuid-123',
-        'expiresIn': 3600,
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    return Response(
+        {
+            'status': payload.get('status', 'sent'),
+            'message': payload.get(
+                'message', 'Password reset instructions sent to email'
+            ),
+            'resetTokenId': generate_identifier('reset', override=payload.get('resetTokenId')),
+            'expiresIn': int(payload.get('expiresIn', 3600)),
+        }
+    )
 
 
 @api_view(['POST'])
 def mfa_setup(request):
-    return Response({
-        'qrCode': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
-        'secret': 'JBSWY3DPEHPK3PXP',
-        'backupCodes': ['12345678', '87654321'],
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = {
+        'qrCode': payload.get('qrCode', 'data:image/png;base64,PLACEHOLDER'),
+        'secret': payload.get('secret', 'SAMPLESECRET'),
+        'backupCodes': ensure_list(payload.get('backupCodes'), ['12345678', '87654321']),
+    }
+    return Response(template)
 
 
 urlpatterns = [

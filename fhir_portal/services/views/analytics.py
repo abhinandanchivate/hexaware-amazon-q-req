@@ -2,240 +2,183 @@ from django.urls import path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from ..sample_utils import deep_merge, ensure_list, generate_identifier, isoformat_now
+
 
 @api_view(['POST'])
 def risk_score(request):
-    return Response({
-        'patientId': request.data.get('patientId', 'patient-uuid-123'),
-        'riskType': request.data.get('riskType', 'diabetes'),
-        'score': 0.75,
-        'level': 'high',
-        'confidence': 0.89,
-        'factors': [
-            {
-                'name': 'BMI',
-                'contribution': 0.35,
-                'weight': 'high',
-            },
-            {
-                'name': 'Family History',
-                'contribution': 0.25,
-                'weight': 'medium',
-            },
-        ],
-        'recommendations': ['Regular glucose monitoring', 'Dietary consultation'],
-        'calculatedAt': '2023-09-01T12:30:45Z',
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = {
+        'patientId': payload.get('patientId', generate_identifier('patient')),
+        'riskType': payload.get('riskType', 'diabetes'),
+        'score': float(payload.get('score', 0.75)),
+        'level': payload.get('level', 'high'),
+        'confidence': float(payload.get('confidence', 0.89)),
+        'factors': ensure_list(payload.get('factors'), []),
+        'recommendations': ensure_list(
+            payload.get('recommendations'), ['Regular monitoring']
+        ),
+        'calculatedAt': payload.get('calculatedAt', isoformat_now()),
+    }
+    return Response(template)
 
 
 @api_view(['POST'])
 def train_model(request):
-    return Response({
-        'trainingJobId': 'job-uuid-123',
-        'status': 'running',
-        'estimatedCompletion': '2023-09-01T14:30:45Z',
-        'datasetInfo': {
-            'totalRecords': 15420,
-            'trainingRecords': 12336,
-            'validationRecords': 1542,
-            'testRecords': 1542,
-            'featureCount': 15,
-            'classDistribution': {
-                'diabetes': 0.23,
-                'pre_diabetes': 0.31,
-                'normal': 0.46,
-            },
+    payload = request.data if isinstance(request.data, dict) else {}
+    dataset_info = deep_merge(
+        {
+            'totalRecords': 0,
+            'trainingRecords': 0,
+            'validationRecords': 0,
+            'testRecords': 0,
+            'featureCount': 0,
+            'classDistribution': {},
         },
-        'progress': {
-            'currentStep': 'feature_engineering',
-            'completionPercent': 25,
-            'estimatedTimeRemaining': 'PT45M',
-        },
-    })
+        payload.get('datasetInfo', {}),
+    )
+    template = {
+        'trainingJobId': generate_identifier('job', override=payload.get('trainingJobId')),
+        'status': payload.get('status', 'running'),
+        'estimatedCompletion': payload.get('estimatedCompletion', isoformat_now()),
+        'datasetInfo': dataset_info,
+        'progress': deep_merge(
+            {'currentStep': 'pending', 'completionPercent': 0, 'estimatedTimeRemaining': None},
+            payload.get('progress', {}),
+        ),
+    }
+    return Response(template)
 
 
 @api_view(['POST'])
 def personalized_alerts(request):
-    return Response({
-        'alertId': 'alert-uuid-789',
-        'patientId': request.data.get('patientId', 'patient-uuid-123'),
-        'riskAssessment': {
-            'overallRisk': 0.82,
-            'riskLevel': 'high',
-            'confidence': 0.89,
-            'prediction': {
-                'condition': 'type_2_diabetes',
-                'probability': 0.82,
-                'timeHorizon': 'P30D',
-            },
-        },
-        'contributingFactors': [
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = {
+        'alertId': generate_identifier('alert', override=payload.get('alertId')),
+        'patientId': payload.get('patientId', generate_identifier('patient')),
+        'riskAssessment': deep_merge(
             {
-                'factor': 'elevated_glucose',
-                'impact': 0.35,
-                'recentTrend': 'increasing',
-                'lastValue': 145,
-                'referenceRange': '70-100 mg/dL',
+                'overallRisk': 0.0,
+                'riskLevel': 'low',
+                'confidence': 0.0,
+                'prediction': {
+                    'condition': 'unspecified',
+                    'probability': 0.0,
+                    'timeHorizon': 'P0D',
+                },
             },
-            {
-                'factor': 'bmi',
-                'impact': 0.28,
-                'value': 32.5,
-                'category': 'obese',
-            },
-        ],
-        'recommendations': [
-            {
-                'type': 'clinical_action',
-                'priority': 'high',
-                'action': 'Schedule endocrinology consultation',
-                'reasoning': 'High diabetes risk with recent glucose elevation',
-            },
-            {
-                'type': 'lifestyle_intervention',
-                'priority': 'medium',
-                'action': 'Initiate dietary counseling',
-                'evidenceLevel': 'strong',
-            },
-        ],
-        'fhirResources': [
-            {
-                'resourceType': 'RiskAssessment',
-                'id': 'risk-assess-uuid-101',
-                'status': 'final',
-            }
-        ],
-    })
+            payload.get('riskAssessment', {}),
+        ),
+        'contributingFactors': ensure_list(payload.get('contributingFactors'), []),
+        'recommendations': ensure_list(payload.get('recommendations'), []),
+        'fhirResources': ensure_list(payload.get('fhirResources'), []),
+    }
+    return Response(template)
 
 
 @api_view(['POST'])
 def model_version(request, model_id: str):
-    return Response({
-        'modelVersionId': 'model-version-uuid-456',
-        'status': 'deployed',
-        'deploymentTimestamp': '2023-09-01T12:30:45Z',
-        'performanceComparison': {
-            'previousVersion': {
-                'version': '2.0.0',
-                'accuracy': 0.85,
-                'auc': 0.91,
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = {
+        'modelVersionId': generate_identifier('model-version', override=payload.get('modelVersionId')),
+        'status': payload.get('status', 'deployed'),
+        'deploymentTimestamp': payload.get('deploymentTimestamp', isoformat_now()),
+        'performanceComparison': deep_merge(
+            {
+                'previousVersion': {},
+                'improvement': {},
             },
-            'improvement': {
-                'accuracy': 0.04,
-                'auc': 0.03,
-                'statisticalSignificance': True,
-            },
-        },
-        'productionMetrics': {
-            'predictionLatency': 'PT0.05S',
-            'throughput': '1000/minute',
-            'errorRate': 0.001,
-        },
-    })
+            payload.get('performanceComparison', {}),
+        ),
+        'productionMetrics': deep_merge(
+            {'predictionLatency': None, 'throughput': None, 'errorRate': None},
+            payload.get('productionMetrics', {}),
+        ),
+        'modelId': model_id,
+    }
+    return Response(template)
 
 
 @api_view(['GET'])
 def healthcare_trends(request):
-    return Response({
-        'analysisId': 'trend-analysis-uuid-789',
-        'timeRange': {
-            'start': '2022-09-01T00:00:00Z',
-            'end': '2023-09-01T00:00:00Z',
-        },
-        'trends': [
+    query = request.query_params
+    time_range = {
+        'start': query.get('start', isoformat_now()),
+        'end': query.get('end', isoformat_now()),
+    }
+    metrics = query.getlist('metric')
+    if metrics:
+        trends = [
+            {
+                'metric': metric,
+                'overall': {
+                    'currentValue': float(query.get(f'{metric}.current', 0.0)),
+                    'previousPeriod': float(query.get(f'{metric}.previous', 0.0)),
+                    'changePercent': float(query.get(f'{metric}.changePercent', 0.0)),
+                    'trend': query.get(f'{metric}.trend', 'stable'),
+                    'significance': query.get(f'{metric}.significance', 'n/a'),
+                },
+                'byDemographics': [],
+                'timeSeriesData': [],
+            }
+            for metric in metrics
+        ]
+    else:
+        trends = [
             {
                 'metric': 'readmission_rate',
                 'overall': {
-                    'currentValue': 0.12,
-                    'previousPeriod': 0.15,
-                    'changePercent': -20.0,
-                    'trend': 'decreasing',
-                    'significance': 'p < 0.05',
+                    'currentValue': 0.0,
+                    'previousPeriod': 0.0,
+                    'changePercent': 0.0,
+                    'trend': 'stable',
+                    'significance': 'n/a',
                 },
-                'byDemographics': [
-                    {
-                        'segment': 'age_65_plus',
-                        'value': 0.18,
-                        'trend': 'stable',
-                        'sampleSize': 1247,
-                    },
-                    {
-                        'segment': 'cardiology_dept',
-                        'value': 0.08,
-                        'trend': 'decreasing',
-                        'sampleSize': 892,
-                    },
-                ],
-                'timeSeriesData': [
-                    {
-                        'period': '2022-09',
-                        'value': 0.15,
-                        'confidenceInterval': [0.13, 0.17],
-                    },
-                    {
-                        'period': '2023-08',
-                        'value': 0.12,
-                        'confidenceInterval': [0.10, 0.14],
-                    },
-                ],
+                'byDemographics': [],
+                'timeSeriesData': [],
             }
-        ],
-        'correlations': [
-            {
-                'metric1': 'readmission_rate',
-                'metric2': 'average_length_of_stay',
-                'correlation': -0.65,
-                'significance': 'p < 0.001',
-            }
-        ],
-        'anomalies': [
-            {
-                'metric': 'infection_rate',
-                'period': '2023-06',
-                'value': 0.08,
-                'expected': 0.05,
-                'zScore': 2.3,
-                'investigation': 'required',
-            }
-        ],
-    })
+        ]
+    response = {
+        'analysisId': query.get('analysisId', generate_identifier('trend-analysis')),
+        'timeRange': time_range,
+        'trends': trends,
+        'correlations': ensure_list([], []),
+        'anomalies': ensure_list([], []),
+    }
+    return Response(response)
 
 
 @api_view(['POST'])
 def link_fhir(request):
-    return Response({
-        'linkingId': 'fhir-link-uuid-101',
-        'fhirResources': [
+    payload = request.data if isinstance(request.data, dict) else {}
+    default_resource = {
+        'resourceType': 'RiskAssessment',
+        'id': generate_identifier('risk-assessment'),
+        'status': 'final',
+        'subject': {'reference': f"Patient/{payload.get('patientId', generate_identifier('patient'))}"},
+        'performer': {'reference': 'Device/ml-model-device'},
+        'prediction': [
             {
-                'resourceType': 'RiskAssessment',
-                'id': 'risk-assess-uuid-202',
-                'status': 'final',
-                'subject': {'reference': f"Patient/{request.data.get('patientId', 'patient-uuid-456')}",},
-                'performer': {'reference': 'Device/ml-model-device-uuid-303'},
-                'prediction': [
-                    {
-                        'outcome': {
-                            'coding': [
-                                {
-                                    'system': 'http://snomed.info/sct',
-                                    'code': '44054006',
-                                    'display': 'Type 2 diabetes mellitus',
-                                }
-                            ]
-                        },
-                        'probabilityDecimal': 0.82,
-                    }
-                ],
+                'outcome': {'coding': []},
+                'probabilityDecimal': 0.0,
             }
         ],
-        'auditTrail': {
-            'createdBy': 'ml-system',
-            'createdAt': '2023-09-01T12:30:45Z',
-            'modelVersion': '2.1.0',
-            'inputFeatures': 15,
-            'confidence': 0.89,
-        },
-    })
+    }
+    template = {
+        'linkingId': generate_identifier('fhir-link', override=payload.get('linkingId')),
+        'fhirResources': ensure_list(payload.get('fhirResources'), [default_resource]),
+        'auditTrail': deep_merge(
+            {
+                'createdBy': 'ml-system',
+                'createdAt': isoformat_now(),
+                'modelVersion': payload.get('modelId', '1.0.0'),
+                'inputFeatures': payload.get('inputFeatures', 0),
+                'confidence': payload.get('confidence', 0.0),
+            },
+            payload.get('auditTrail', {}),
+        ),
+    }
+    return Response(template)
 
 
 urlpatterns = [

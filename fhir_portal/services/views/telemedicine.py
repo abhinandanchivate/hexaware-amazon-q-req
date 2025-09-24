@@ -2,57 +2,78 @@ from django.urls import path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from ..sample_utils import ensure_list, generate_identifier, isoformat_now
+
 
 @api_view(['POST'])
 def create_session(request):
-    return Response({
-        'sessionId': 'session-uuid-101',
-        'joinUrls': {
-            'patient': 'https://telemedicine.example.com/join/patient-token-123',
-            'provider': 'https://telemedicine.example.com/join/provider-token-456',
-        },
-        'accessWindow': {
-            'start': '2023-09-15T08:50:00Z',
-            'end': '2023-09-15T09:40:00Z',
-        },
-        'sessionSettings': {
-            'recordingEnabled': False,
-            'chatEnabled': True,
-            'screenShareEnabled': True,
-        },
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = {
+        'sessionId': generate_identifier('session', override=payload.get('sessionId')),
+        'joinUrls': payload.get(
+            'joinUrls',
+            {
+                'patient': 'https://telemedicine.example.com/join/patient-token',
+                'provider': 'https://telemedicine.example.com/join/provider-token',
+            },
+        ),
+        'accessWindow': payload.get(
+            'accessWindow',
+            {
+                'start': isoformat_now(),
+                'end': isoformat_now(),
+            },
+        ),
+        'sessionSettings': payload.get(
+            'sessionSettings',
+            {
+                'recordingEnabled': False,
+                'chatEnabled': True,
+                'screenShareEnabled': True,
+            },
+        ),
+    }
+    return Response(template)
 
 
 @api_view(['POST'])
 def record_consent(request):
-    return Response({
-        'sessionId': request.data.get('sessionId', 'session-uuid-101'),
-        'userId': request.data.get('userId', 'patient-uuid-123'),
-        'consentType': request.data.get('consentType', 'video_recording'),
-        'granted': request.data.get('granted', True),
-        'recordedAt': request.data.get('timestamp', '2023-09-15T08:55:00Z'),
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    template = {
+        'sessionId': payload.get('sessionId', generate_identifier('session')),
+        'userId': payload.get('userId', generate_identifier('user')),
+        'consentType': payload.get('consentType', 'video_recording'),
+        'granted': bool(payload.get('granted', True)),
+        'recordedAt': payload.get('timestamp', isoformat_now()),
+        'ipAddress': payload.get('ipAddress'),
+    }
+    return Response(template)
 
 
 @api_view(['GET'])
 def metrics(request, session_id: str):
-    return Response({
+    query = request.query_params
+    response = {
         'sessionId': session_id,
         'qualityMetrics': {
-            'averageLatency': 45,
-            'packetLoss': 0.2,
-            'videoQuality': 'HD',
-            'audioQuality': 'excellent',
+            'averageLatency': float(query.get('averageLatency', 0)),
+            'packetLoss': float(query.get('packetLoss', 0)),
+            'videoQuality': query.get('videoQuality', 'HD'),
+            'audioQuality': query.get('audioQuality', 'excellent'),
         },
-        'duration': 1800,
-        'participants': [
-            {
-                'userId': 'patient-uuid-123',
-                'connectionTime': 1795,
-                'disconnections': 0,
-            }
-        ],
-    })
+        'duration': int(query.get('duration', 0)),
+        'participants': ensure_list(
+            None,
+            [
+                {
+                    'userId': generate_identifier('user'),
+                    'connectionTime': int(query.get('connectionTime', 0)),
+                    'disconnections': int(query.get('disconnections', 0)),
+                }
+            ],
+        ),
+    }
+    return Response(response)
 
 
 urlpatterns = [

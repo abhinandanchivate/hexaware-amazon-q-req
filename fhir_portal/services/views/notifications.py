@@ -2,45 +2,56 @@ from django.urls import path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from ..sample_utils import ensure_list, generate_identifier, isoformat_now
+
 
 @api_view(['POST'])
 def send_notification(request):
-    return Response({
-        'notificationId': 'notif-uuid-123',
-        'status': 'scheduled',
-        'channels': [
+    payload = request.data if isinstance(request.data, dict) else {}
+    channels = ensure_list(
+        payload.get('channels'),
+        [
             {
                 'type': 'email',
                 'status': 'queued',
-                'estimatedDelivery': '2023-09-14T20:00:30Z',
-            },
-            {
-                'type': 'sms',
-                'status': 'queued',
-                'estimatedDelivery': '2023-09-14T20:00:15Z',
-            },
+                'estimatedDelivery': isoformat_now(),
+            }
         ],
-    })
+    )
+    template = {
+        'notificationId': generate_identifier('notif', override=payload.get('notificationId')),
+        'status': payload.get('status', 'scheduled'),
+        'channels': channels,
+        'scheduledAt': payload.get('scheduledAt', isoformat_now()),
+    }
+    return Response(template)
 
 
 @api_view(['POST'])
 def create_template(request):
-    return Response({
-        'templateId': 'template-uuid-123',
-        'name': request.data.get('name', 'appointment_reminder'),
-        'channels': request.data.get('channels', {}),
-        'variables': request.data.get('variables', []),
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    return Response(
+        {
+            'templateId': generate_identifier('template', override=payload.get('templateId')),
+            'name': payload.get('name', 'appointment_reminder'),
+            'channels': payload.get('channels', {}),
+            'variables': ensure_list(payload.get('variables'), ['patientName']),
+        }
+    )
 
 
 @api_view(['POST'])
 def bulk(request):
-    return Response({
-        'campaignName': request.data.get('campaignName', 'campaign'),
-        'status': 'scheduled',
-        'scheduledAt': request.data.get('scheduledAt', '2023-09-20T10:00:00Z'),
-        'recipientCount': len(request.data.get('recipients', [])),
-    })
+    payload = request.data if isinstance(request.data, dict) else {}
+    recipients = ensure_list(payload.get('recipients'), [])
+    return Response(
+        {
+            'campaignName': payload.get('campaignName', 'campaign'),
+            'status': payload.get('status', 'scheduled'),
+            'scheduledAt': payload.get('scheduledAt', isoformat_now()),
+            'recipientCount': len(recipients),
+        }
+    )
 
 
 urlpatterns = [
