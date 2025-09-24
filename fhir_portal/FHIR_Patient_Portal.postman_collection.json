@@ -1,0 +1,1228 @@
+{
+  "info": {
+    "name": "FHIR Patient Portal API",
+    "description": "Collection covering the stubbed REST endpoints for the Django-based FHIR Patient Portal prototype.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    }
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "bearerToken",
+      "value": "sample-jwt-token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "HL7 Parser Service",
+      "item": [
+        {
+          "name": "HL7 Message Ingestion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/hl7-v2"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "MSH|^~\\&|SENDING_APP|SENDING_FACILITY|RECEIVING_APP|RECEIVING_FACILITY|20230901123045||ADT^A01\nEVN||20230901123045|||USER123\nPID|||MRN12345||Doe^John^M||19800115|M|||123 Main St^^City^ST^12345^USA||5551234567|\nPV1||I|ICU^101^A|||DOC123^Smith^Jane^MD|||SUR||||A|||DOC123|INS|12345|||||||||||||||||||20230901123045"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hl7-parser/ingest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hl7-parser",
+                "ingest"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Message Parsing Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hl7-parser/parse-status/MSG001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hl7-parser",
+                "parse-status",
+                "MSG001"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Batch Processing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"batch-001\",\n  \"messages\": [\n    {\n      \"messageId\": \"MSG001\",\n      \"content\": \"MSH|^~\\\\&|...\",\n      \"priority\": \"normal\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hl7-parser/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hl7-parser",
+                "batch"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient Service",
+      "item": [
+        {
+          "name": "Patient Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"identifier\": [\n    {\n      \"use\": \"usual\",\n      \"type\": {\n        \"coding\": [\n          {\n            \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0203\",\n            \"code\": \"MR\"\n          }\n        ]\n      },\n      \"value\": \"MRN12345\"\n    }\n  ],\n  \"name\": [\n    {\n      \"use\": \"official\",\n      \"family\": \"Doe\",\n      \"given\": [\"John\", \"Michael\"]\n    }\n  ],\n  \"gender\": \"male\",\n  \"birthDate\": \"1980-01-15\",\n  \"address\": [\n    {\n      \"use\": \"home\",\n      \"line\": [\"123 Main St\"],\n      \"city\": \"Springfield\",\n      \"state\": \"IL\",\n      \"postalCode\": \"62701\",\n      \"country\": \"US\"\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"555-123-4567\",\n      \"use\": \"mobile\"\n    },\n    {\n      \"system\": \"email\",\n      \"value\": \"john.doe@email.com\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patient Profile Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [\n    {\n      \"family\": \"Doe\",\n      \"given\": [\"John\", \"Michael\"]\n    }\n  ],\n  \"telecom\": [\n    {\n      \"system\": \"phone\",\n      \"value\": \"555-987-6543\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/{{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "{{patientId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patient Search",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/search?identifier=MRN12345&name=John&_fuzzy=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "identifier",
+                  "value": "MRN12345"
+                },
+                {
+                  "key": "name",
+                  "value": "John"
+                },
+                {
+                  "key": "_fuzzy",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patient Record Merge",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Duplicate records identified\",\n  \"mergeStrategy\": \"keep_latest\",\n  \"fields\": [\"contact\", \"address\"],\n  \"auditReason\": \"Data quality improvement\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/{{sourceId}}/merge/{{targetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "{{sourceId}}",
+                "merge",
+                "{{targetId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patient Data Export",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/{{patientId}}/export?format=pdf&includeSections=demographics,vitals,labs,medications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "{{patientId}}",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "pdf"
+                },
+                {
+                  "key": "includeSections",
+                  "value": "demographics,vitals,labs,medications"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Observation Service",
+      "item": [
+        {
+          "name": "Vital Signs Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"category\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://terminology.hl7.org/CodeSystem/observation-category\",\n          \"code\": \"vital-signs\"\n        }\n      ]\n    }\n  ],\n  \"code\": {\n    \"coding\": [\n      {\n        \"system\": \"http://loinc.org\",\n        \"code\": \"85354-9\",\n        \"display\": \"Blood pressure panel with all children optional\"\n      }\n    ]\n  },\n  \"subject\": {\n    \"reference\": \"Patient/patient-uuid-123\"\n  },\n  \"effectiveDateTime\": \"2023-09-01T12:30:45Z\",\n  \"component\": [\n    {\n      \"code\": {\n        \"coding\": [\n          {\n            \"system\": \"http://loinc.org\",\n            \"code\": \"8480-6\",\n            \"display\": \"Systolic blood pressure\"\n          }\n        ]\n      },\n      \"valueQuantity\": {\n        \"value\": 120,\n        \"unit\": \"mmHg\",\n        \"system\": \"http://unitsofmeasure.org\",\n        \"code\": \"mm[Hg]\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/observations/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "observations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Lab Results Integration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Bundle\",\n  \"type\": \"transaction\",\n  \"entry\": [\n    {\n      \"request\": {\n        \"method\": \"POST\",\n        \"url\": \"Observation\"\n      },\n      \"resource\": {\n        \"resourceType\": \"Observation\",\n        \"status\": \"final\",\n        \"category\": [\n          {\n            \"coding\": [\n              {\n                \"system\": \"http://terminology.hl7.org/CodeSystem/observation-category\",\n                \"code\": \"laboratory\"\n              }\n            ]\n          }\n        ],\n        \"code\": {\n          \"coding\": [\n            {\n              \"system\": \"http://loinc.org\",\n              \"code\": \"2339-0\",\n              \"display\": \"Glucose\"\n            }\n          ]\n        },\n        \"valueQuantity\": {\n          \"value\": 95,\n          \"unit\": \"mg/dL\",\n          \"system\": \"http://unitsofmeasure.org\"\n        }\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/observations/lab-results",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "observations",
+                "lab-results"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trend Visualization Data",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/observations/{{patientId}}/trends?code=2339-0&category=laboratory&period=P30D",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "observations",
+                "{{patientId}}",
+                "trends"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "2339-0"
+                },
+                {
+                  "key": "category",
+                  "value": "laboratory"
+                },
+                {
+                  "key": "period",
+                  "value": "P30D"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clinical Alerts Configuration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"patient-uuid-123\",\n  \"observationCode\": \"8480-6\",\n  \"thresholds\": {\n    \"critical\": {\n      \"high\": 180,\n      \"low\": 90\n    },\n    \"warning\": {\n      \"high\": 140,\n      \"low\": 100\n    }\n  },\n  \"notificationChannels\": [\"email\", \"sms\", \"app\"],\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/observations/alerts/configure",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "observations",
+                "alerts",
+                "configure"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointment Service",
+      "item": [
+        {
+          "name": "Appointment Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Appointment\",\n  \"status\": \"booked\",\n  \"serviceCategory\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://terminology.hl7.org/CodeSystem/service-category\",\n          \"code\": \"17\",\n          \"display\": \"General Practice\"\n        }\n      ]\n    }\n  ],\n  \"appointmentType\": {\n    \"coding\": [\n      {\n        \"system\": \"http://terminology.hl7.org/CodeSystem/v2-0276\",\n        \"code\": \"ROUTINE\"\n      }\n    ]\n  },\n  \"start\": \"2023-09-15T09:00:00Z\",\n  \"end\": \"2023-09-15T09:30:00Z\",\n  \"participant\": [\n    {\n      \"actor\": {\n        \"reference\": \"Patient/patient-uuid-123\"\n      },\n      \"required\": \"required\",\n      \"status\": \"accepted\"\n    },\n    {\n      \"actor\": {\n        \"reference\": \"Practitioner/doc-uuid-456\"\n      },\n      \"required\": \"required\",\n      \"status\": \"accepted\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Real-time Availability",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/availability?practitioner=doc-uuid-456&date=2023-09-15&duration=30&serviceType=routine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "practitioner",
+                  "value": "doc-uuid-456"
+                },
+                {
+                  "key": "date",
+                  "value": "2023-09-15"
+                },
+                {
+                  "key": "duration",
+                  "value": "30"
+                },
+                {
+                  "key": "serviceType",
+                  "value": "routine"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Waitlist Management",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"patient-uuid-123\",\n  \"preferredDates\": [\n    \"2023-09-15\",\n    \"2023-09-16\"\n  ],\n  \"preferredTimes\": [\"morning\", \"afternoon\"],\n  \"priority\": \"routine\",\n  \"notificationPreferences\": {\n    \"email\": true,\n    \"sms\": true,\n    \"advanceNotice\": \"24h\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/waitlist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                "{{appointmentId}}",
+                "waitlist"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Auth Service",
+      "item": [
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"mfaCode\": \"123456\",\n  \"deviceInfo\": {\n    \"deviceId\": \"device-uuid-123\",\n    \"userAgent\": \"Mozilla/5.0...\",\n    \"ipAddress\": \"192.168.1.100\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "User Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"confirmPassword\": \"SecurePass123!\",\n  \"profile\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"phone\": \"555-123-4567\",\n    \"dateOfBirth\": \"1980-01-15\"\n  },\n  \"acceptTerms\": true,\n  \"verificationMethod\": \"email\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"resetMethod\": \"email\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/password-reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "password-reset"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MFA Setup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"totp\",\n  \"deviceName\": \"iPhone 12\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/mfa/setup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "mfa",
+                "setup"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Role Management Service",
+      "item": [
+        {
+          "name": "Role Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid-123\",\n  \"roles\": [\"doctor\", \"department_head\"],\n  \"effectiveDate\": \"2023-09-01T00:00:00Z\",\n  \"expiryDate\": \"2024-09-01T00:00:00Z\",\n  \"assignedBy\": \"admin-uuid-456\",\n  \"reason\": \"Promotion to department head\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "assign"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Permission Validation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid-123\",\n  \"resource\": \"Patient/patient-uuid-456\",\n  \"action\": \"read\",\n  \"context\": {\n    \"facility\": \"facility-uuid-789\",\n    \"department\": \"cardiology\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "validate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "ABAC Evaluation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": {\n    \"userId\": \"user-uuid-123\",\n    \"roles\": [\"doctor\"],\n    \"department\": \"cardiology\",\n    \"facility\": \"facility-uuid-789\"\n  },\n  \"resource\": {\n    \"type\": \"Patient\",\n    \"id\": \"patient-uuid-456\",\n    \"attributes\": {\n      \"facility\": \"facility-uuid-789\",\n      \"department\": \"cardiology\"\n    }\n  },\n  \"action\": \"read\",\n  \"environment\": {\n    \"time\": \"2023-09-01T14:30:00Z\",\n    \"location\": \"clinic\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles/abac/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "abac",
+                "evaluate"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Telemedicine Service",
+      "item": [
+        {
+          "name": "Session Creation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointmentId\": \"appt-uuid-789\",\n  \"participants\": [\n    {\n      \"userId\": \"patient-uuid-123\",\n      \"role\": \"patient\"\n    },\n    {\n      \"userId\": \"doc-uuid-456\",\n      \"role\": \"provider\"\n    }\n  ],\n  \"sessionType\": \"video_consultation\",\n  \"scheduledStart\": \"2023-09-15T09:00:00Z\",\n  \"estimatedDuration\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemedicine/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemedicine",
+                "sessions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consent Management",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"session-uuid-101\",\n  \"userId\": \"patient-uuid-123\",\n  \"consentType\": \"video_recording\",\n  \"granted\": true,\n  \"timestamp\": \"2023-09-15T08:55:00Z\",\n  \"ipAddress\": \"192.168.1.100\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemedicine/consent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemedicine",
+                "consent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Quality Monitoring",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemedicine/sessions/{{sessionId}}/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemedicine",
+                "sessions",
+                "{{sessionId}}",
+                "metrics"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification Service",
+      "item": [
+        {
+          "name": "Send Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipientId\": \"user-uuid-123\",\n  \"channels\": [\"email\", \"sms\"],\n  \"template\": \"appointment_reminder\",\n  \"data\": {\n    \"appointmentDate\": \"2023-09-15T09:00:00Z\",\n    \"doctorName\": \"Dr. Jane Smith\",\n    \"location\": \"Room 101, Main Building\"\n  },\n  \"scheduledAt\": \"2023-09-14T20:00:00Z\",\n  \"priority\": \"normal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "send"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Template Management",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"appointment_reminder\",\n  \"channels\": {\n    \"email\": {\n      \"subject\": \"Appointment Reminder - {{appointmentDate}}\",\n      \"body\": \"Dear {{patientName}}, you have an appointment with {{doctorName}} on {{appointmentDate}}.\"\n    },\n    \"sms\": {\n      \"body\": \"Reminder: Appointment with {{doctorName}} on {{appointmentDate}}. Reply STOP to opt out.\"\n    }\n  },\n  \"variables\": [\"patientName\", \"doctorName\", \"appointmentDate\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "templates"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaignName\": \"flu_shot_reminder\",\n  \"template\": \"vaccination_reminder\",\n  \"recipients\": [\n    {\n      \"userId\": \"user-uuid-123\",\n      \"data\": {\n        \"patientName\": \"John Doe\"\n      }\n    },\n    {\n      \"userId\": \"user-uuid-456\",\n      \"data\": {\n        \"patientName\": \"Jane Smith\"\n      }\n    }\n  ],\n  \"channels\": [\"email\"],\n  \"scheduledAt\": \"2023-09-20T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "bulk"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics Service",
+      "item": [
+        {
+          "name": "Risk Scoring",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"patient-uuid-123\",\n  \"riskType\": \"diabetes\",\n  \"factors\": [\n    {\n      \"type\": \"observation\",\n      \"code\": \"33747-0\",\n      \"value\": 95,\n      \"unit\": \"mg/dL\"\n    },\n    {\n      \"type\": \"demographic\",\n      \"age\": 43,\n      \"gender\": \"male\",\n      \"bmi\": 28.5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/risk-score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "risk-score"
+              ]
+            }
+          }
+        },
+        {
+          "name": "ML Model Training",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trainingJob\": {\n    \"modelName\": \"diabetes_risk_classifier\",\n    \"modelType\": \"classification\",\n    \"algorithm\": \"random_forest\",\n    \"targetVariable\": \"diabetes_diagnosis\",\n    \"features\": [\n      {\n        \"name\": \"age\",\n        \"type\": \"numeric\",\n        \"source\": \"Patient.birthDate\",\n        \"preprocessing\": \"age_calculation\"\n      },\n      {\n        \"name\": \"bmi\",\n        \"type\": \"numeric\",\n        \"source\": \"Observation\",\n        \"loincCode\": \"39156-5\",\n        \"preprocessing\": \"outlier_removal\"\n      },\n      {\n        \"name\": \"glucose_level\",\n        \"type\": \"numeric\",\n        \"source\": \"Observation\",\n        \"loincCode\": \"2339-0\",\n        \"aggregation\": \"latest_value\"\n      },\n      {\n        \"name\": \"family_history\",\n        \"type\": \"categorical\",\n        \"source\": \"FamilyMemberHistory\",\n        \"valueSet\": \"diabetes_conditions\"\n      }\n    ],\n    \"trainingParameters\": {\n      \"dataRange\": {\n        \"start\": \"2020-01-01\",\n        \"end\": \"2023-08-31\"\n      },\n      \"validationSplit\": 0.2,\n      \"testSplit\": 0.1,\n      \"hyperparameters\": {\n        \"n_estimators\": 100,\n        \"max_depth\": 10,\n        \"min_samples_split\": 5,\n        \"random_state\": 42\n      },\n      \"crossValidation\": {\n        \"folds\": 5,\n        \"stratified\": true\n      }\n    },\n    \"dataPrivacy\": {\n      \"anonymization\": \"k_anonymity\",\n      \"k_value\": 5,\n      \"excludePII\": true,\n      \"auditRequired\": true\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/ml/models/train",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "ml",
+                "models",
+                "train"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Personalized Clinical Alerts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"patient-uuid-123\",\n  \"modelId\": \"model-uuid-456\",\n  \"alertConfiguration\": {\n    \"riskThreshold\": 0.75,\n    \"alertTypes\": [\"high_risk\", \"trend_deterioration\"],\n    \"timeHorizon\": \"P30D\",\n    \"updateFrequency\": \"daily\"\n  },\n  \"contextualFactors\": [\n    {\n      \"type\": \"recent_observations\",\n      \"lookbackPeriod\": \"P7D\",\n      \"weight\": 0.4\n    },\n    {\n      \"type\": \"medication_adherence\",\n      \"source\": \"MedicationStatement\",\n      \"weight\": 0.3\n    },\n    {\n      \"type\": \"lifestyle_factors\",\n      \"source\": \"Observation\",\n      \"categories\": [\"exercise\", \"diet\", \"smoking\"],\n      \"weight\": 0.3\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/ml/alerts/personalized",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "ml",
+                "alerts",
+                "personalized"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Model Versioning",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"versionInfo\": {\n    \"version\": \"2.1.0\",\n    \"description\": \"Improved diabetes risk model with additional lifestyle factors\",\n    \"trainingJobId\": \"job-uuid-123\",\n    \"baselineModel\": \"model-uuid-456-v2.0.0\"\n  },\n  \"performanceMetrics\": {\n    \"accuracy\": 0.89,\n    \"precision\": 0.87,\n    \"recall\": 0.91,\n    \"f1Score\": 0.89,\n    \"auc\": 0.94,\n    \"crossValidationScore\": 0.88\n  },\n  \"modelArtifacts\": {\n    \"modelFile\": \"diabetes_rf_v2.1.0.pkl\",\n    \"featureImportance\": \"feature_importance_v2.1.0.json\",\n    \"preprocessor\": \"preprocessor_v2.1.0.pkl\",\n    \"metadata\": \"model_metadata_v2.1.0.json\"\n  },\n  \"deploymentConfig\": {\n    \"environment\": \"production\",\n    \"rolloutStrategy\": \"blue_green\",\n    \"canaryPercentage\": 10,\n    \"monitoringPeriod\": \"P7D\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/ml/models/{{modelId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "ml",
+                "models",
+                "{{modelId}}",
+                "versions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Healthcare Trend Analysis",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/analytics/trends?metric=readmission_rate,infection_rate,mortality_rate&timeRange=P1Y&granularity=monthly&demographics=age,gender,department&facility=facility-uuid-001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "analytics",
+                "trends"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "readmission_rate,infection_rate,mortality_rate"
+                },
+                {
+                  "key": "timeRange",
+                  "value": "P1Y"
+                },
+                {
+                  "key": "granularity",
+                  "value": "monthly"
+                },
+                {
+                  "key": "demographics",
+                  "value": "age,gender,department"
+                },
+                {
+                  "key": "facility",
+                  "value": "facility-uuid-001"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "FHIR Prediction Linking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"predictionId\": \"prediction-uuid-123\",\n  \"patientId\": \"patient-uuid-456\",\n  \"modelId\": \"model-uuid-789\",\n  \"fhirMapping\": {\n    \"primaryResource\": {\n      \"resourceType\": \"RiskAssessment\",\n      \"method\": {\n        \"coding\": [\n          {\n            \"system\": \"http://example.org/ml-models\",\n            \"code\": \"diabetes_risk_rf_v2.1.0\",\n            \"display\": \"Diabetes Risk Random Forest v2.1.0\"\n          }\n        ]\n      },\n      \"prediction\": [\n        {\n          \"outcome\": {\n            \"coding\": [\n              {\n                \"system\": \"http://snomed.info/sct\",\n                \"code\": \"44054006\",\n                \"display\": \"Type 2 diabetes mellitus\"\n              }\n            ]\n          },\n          \"probabilityDecimal\": 0.82,\n          \"whenRange\": {\n            \"low\": {\n              \"value\": 30,\n              \"unit\": \"d\"\n            },\n            \"high\": {\n              \"value\": 90,\n              \"unit\": \"d\"\n            }\n          }\n        }\n      ]\n    },\n    \"supportingResources\": [\n      {\n        \"resourceType\": \"DetectedIssue\",\n        \"status\": \"final\",\n        \"category\": {\n          \"coding\": [\n            {\n              \"system\": \"http://terminology.hl7.org/CodeSystem/v3-ActCode\",\n              \"code\": \"CAUTION\"\n            }\n          ]\n        },\n        \"detail\": \"High risk for developing diabetes based on current health indicators\"\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/ml/predictions/link-fhir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "ml",
+                "predictions",
+                "link-fhir"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit Logging Service",
+      "item": [
+        {
+          "name": "Log Access Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"data_access\",\n  \"userId\": \"user-uuid-123\",\n  \"resourceType\": \"Patient\",\n  \"resourceId\": \"patient-uuid-456\",\n  \"action\": \"read\",\n  \"timestamp\": \"2023-09-01T12:30:45Z\",\n  \"sessionId\": \"session-uuid-789\",\n  \"ipAddress\": \"192.168.1.100\",\n  \"userAgent\": \"Mozilla/5.0...\",\n  \"metadata\": {\n    \"reason\": \"Patient consultation\",\n    \"department\": \"cardiology\",\n    \"facility\": \"facility-uuid-001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit/export?startDate=2023-08-01&endDate=2023-09-01&userId=user-uuid-123&resourceType=Patient&format=csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2023-08-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2023-09-01"
+                },
+                {
+                  "key": "userId",
+                  "value": "user-uuid-123"
+                },
+                {
+                  "key": "resourceType",
+                  "value": "Patient"
+                },
+                {
+                  "key": "format",
+                  "value": "csv"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Anomaly Detection",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit/anomalies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit",
+                "anomalies"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FHIR API Gateway",
+      "item": [
+        {
+          "name": "Capability Statement",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/fhir+json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fhir/R4/metadata",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fhir",
+                "R4",
+                "metadata"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Patient",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/fhir+json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/fhir/R4/Patient/patient-uuid-123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fhir",
+                "R4",
+                "Patient",
+                "patient-uuid-123"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Batch Operations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Bundle\",\n  \"type\": \"batch\",\n  \"entry\": [\n    {\n      \"request\": {\n        \"method\": \"GET\",\n        \"url\": \"Patient/patient-uuid-123\"\n      }\n    },\n    {\n      \"request\": {\n        \"method\": \"GET\",\n        \"url\": \"Observation?patient=patient-uuid-123\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fhir/R4/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fhir",
+                "R4"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
