@@ -59,3 +59,13 @@ python manage.py runserver 0.0.0.0:8000
 ```
 
 The project intentionally uses static sample responses to document the contract. Replace the response bodies with production logic as services mature.
+
+### Run with Docker Compose
+
+This repository includes a `docker-compose.yml` that provisions both the Django application and a MySQL 8 instance with the same defaults as the development settings. To start everything:
+
+```bash
+docker-compose up --build
+```
+
+The first run builds the application image, runs database migrations, and then serves the API at [http://localhost:8000](http://localhost:8000). MySQL data persists in the `mysql-data` Docker volume so the database keeps its state across restarts. Override the default credentials by setting environment variables in a `.env` file alongside the compose file if needed.
